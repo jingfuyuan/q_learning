@@ -14,7 +14,7 @@ NUM_RUNS = 10
 NUM_EPOCHS = 200
 NUM_EPIS_TRAIN = 25  # number of episodes for training at each epoch
 NUM_EPIS_TEST = 50  # number of episodes for testing
-ALPHA = 0.1  # learning rate for training
+ALPHA = 0.001  # learning rate for training
 
 ACTIONS = framework.get_actions()
 OBJECTS = framework.get_objects()
@@ -96,28 +96,38 @@ def run_episode(for_training):
     """
     epsilon = TRAINING_EP if for_training else TESTING_EP
 
-    epi_reward = None
+    epi_reward = 0
     # initialize for each episode
     # TODO Your code here
-
+    coef_rwd = 1/GAMMA
     (current_room_desc, current_quest_desc, terminal) = framework.newGame()
+    current_room_idx = dict_room_desc[current_room_desc]
+    current_quest_idx = dict_quest_desc[current_quest_desc]
 
     while not terminal:
         # Choose next action and execute
         # TODO Your code here
-
+        action_1, action_2 = epsilon_greedy(current_room_idx, current_quest_idx, q_func, epsilon)
+        next_room_desc, next_quest_desc, reward, terminal = framework.step_game(current_room_desc, 
+        current_quest_desc, action_1, action_2)
+        next_room_idx = dict_room_desc[next_room_desc]
+        next_quest_idx = dict_quest_desc[next_quest_desc]
+        coef_rwd *= GAMMA
         if for_training:
             # update Q-function.
             # TODO Your code here
-            pass
+            tabular_q_learning(q_func, current_room_idx, current_quest_idx, action_1,
+                       action_2, reward, next_room_idx, next_quest_idx, terminal)
 
         if not for_training:
             # update reward
             # TODO Your code here
-            pass
+            epi_reward += coef_rwd * reward
 
         # prepare next step
         # TODO Your code here
+        current_room_desc, current_quest_desc = next_room_desc, next_quest_desc
+        current_room_idx, current_quest_idx = next_room_idx, next_quest_idx
 
     if not for_training:
         return epi_reward
@@ -170,6 +180,7 @@ if __name__ == '__main__':
         epoch_rewards_test.append(run())
 
     epoch_rewards_test = np.array(epoch_rewards_test)
+    np.save("out.npy", epoch_rewards_test)
 
     x = np.arange(NUM_EPOCHS)
     fig, axis = plt.subplots()

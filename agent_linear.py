@@ -11,11 +11,11 @@ DEBUG = False
 GAMMA = 0.5  # discounted factor
 TRAINING_EP = 0.5  # epsilon-greedy parameter for training
 TESTING_EP = 0.05  # epsilon-greedy parameter for testing
-NUM_RUNS = 10
-NUM_EPOCHS = 600
+NUM_RUNS = 5
+NUM_EPOCHS = 300
 NUM_EPIS_TRAIN = 25  # number of episodes for training at each epoch
 NUM_EPIS_TEST = 50  # number of episodes for testing
-ALPHA = 0.001  # learning rate for training
+ALPHA = 0.01  # learning rate for training
 
 ACTIONS = framework.get_actions()
 OBJECTS = framework.get_objects()
@@ -47,6 +47,12 @@ def epsilon_greedy(state_vector, theta, epsilon):
     """
     # TODO Your code here
     action_index, object_index = None, None
+    if np.random.random() < epsilon:
+        action_index = np.random.choice(NUM_ACTIONS)
+        object_index = np.random.choice(NUM_OBJECTS)
+    else:
+        q_value = theta.dot(state_vector)
+        action_index, object_index = index2tuple(q_value.argmax())
     return (action_index, object_index)
 # pragma: coderesponse end
 
@@ -69,7 +75,14 @@ def linear_q_learning(theta, current_state_vector, action_index, object_index,
         None
     """
     # TODO Your code here
-    theta = None # TODO Your update here
+    c = tuple2index(action_index, object_index)
+    if not terminal:
+        theta[c] = theta[c] + ALPHA * (reward + GAMMA * np.max(theta.dot(next_state_vector)) - 
+        theta.dot(current_state_vector)[c]) * current_state_vector
+    else:
+        theta[c] = theta[c] + ALPHA * (reward - 
+        theta.dot(current_state_vector)[c]) * current_state_vector
+    return None
 # pragma: coderesponse end
 
 
@@ -85,11 +98,11 @@ def run_episode(for_training):
         None
     """
     epsilon = TRAINING_EP if for_training else TESTING_EP
-    epi_reward = None
+    epi_reward = 0
 
     # initialize for each episode
     # TODO Your code here
-
+    coef_rwd = 1/GAMMA
     (current_room_desc, current_quest_desc, terminal) = framework.newGame()
     while not terminal:
         # Choose next action and execute
@@ -97,19 +110,30 @@ def run_episode(for_training):
         current_state_vector = utils.extract_bow_feature_vector(
             current_state, dictionary)
         # TODO Your code here
+        action_1, action_2 = epsilon_greedy(current_state_vector, theta, epsilon)
+        next_room_desc, next_quest_desc, reward, terminal = framework.step_game(
+            current_room_desc, current_quest_desc, action_1, action_2
+        )
+        next_state = next_room_desc + next_quest_desc
+        next_state_vector = utils.extract_bow_feature_vector(
+            next_state, dictionary
+        )
+        coef_rwd *= GAMMA
 
         if for_training:
             # update Q-function.
             # TODO Your code here
-            pass
+            linear_q_learning(theta, current_state_vector, action_1, action_2, 
+            reward, next_state_vector, terminal)
 
         if not for_training:
             # update reward
             # TODO Your code here
-            pass
+            epi_reward += coef_rwd * reward
 
         # prepare next step
         # TODO Your code here
+        current_room_desc, current_quest_desc = next_room_desc, next_quest_desc
 
     if not for_training:
         return epi_reward
@@ -159,6 +183,7 @@ if __name__ == '__main__':
         epoch_rewards_test.append(run())
 
     epoch_rewards_test = np.array(epoch_rewards_test)
+    np.save("out.npy", epoch_rewards_test)
 
     x = np.arange(NUM_EPOCHS)
     fig, axis = plt.subplots()
@@ -168,4 +193,5 @@ if __name__ == '__main__':
     axis.set_ylabel('reward')
     axis.set_title(('Linear: nRuns=%d, Epilon=%.2f, Epi=%d, alpha=%.4f' %
                     (NUM_RUNS, TRAINING_EP, NUM_EPIS_TRAIN, ALPHA)))
+    plt.show()
 
