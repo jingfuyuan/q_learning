@@ -24,11 +24,10 @@ In order to design an autonomous game player, I employed a reinforcement learnin
 
 - The agent plays an action $c$ at state $s$, getting a reward $R(s, c)$ and observeing the next state $s'$.  
   
-  
+
 - Update the single Q-value corresponding to each such transition: 
-$$Q(s,c)\leftarrow (1-\alpha )Q(s,c)+\alpha [R(s,c)+\gamma \max _{c'\in C}Q(s',c')]$$
+  $$Q(s,c)\leftarrow (1-\alpha )Q(s,c)+\alpha [R(s,c)+\gamma \max _{c'\in C}Q(s',c')]$$
   
 
-- Total discounted reward: 
-  $$\sum _{t=0}^{\infty }\gamma ^{t}r_{t}$$ 
+- Total discounted reward: $\sum _{t=0}^{\infty }\gamma ^{t}r_{t}$
 
